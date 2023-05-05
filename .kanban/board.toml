@@ -1,0 +1,17 @@
+[[columns]]
+name = "To do"
+limit = 7
+
+[[columns]]
+name = "In progress"
+limit = 1
+
+[[columns]]
+name = "Review"
+limit = 3
+
+[[columns]]
+name = "Done"
+display = 10
+sort_by = "last_moved_into_current_column_at"
+sort_order = "desc"
