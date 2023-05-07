@@ -19,19 +19,28 @@ impl<'de> Deserialize<'de> for Card {
         D: Deserializer<'de>,
     {
         let file_path: PathBuf = PathBuf::deserialize(deserializer)?;
+
+        // Open the card file listed in the board column card list
         let mut file = File::open(&file_path).expect(
             format!("file ({}) not found", file_path.display()).as_str(),
         );
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
+
+        // Parse the front matter and excerpt
         let matter: Matter<TOML> = Matter::new();
         let parsed_card = matter.parse(&contents);
         let data = parsed_card.data.as_ref().unwrap();
+
+        // If there is a last moved at date, parse it
         let last_moved_at_value = data["last_moved_at"].clone().as_string().ok();
         let last_moved_at = last_moved_at_value.map(
             |value| DateTime::parse_from_rfc3339(&value).ok()
         ).flatten();
+
+        // If there is a date, convert it to a DateTime<Utc>
         let last_moved_at_utc = last_moved_at.map(|dt| dt.with_timezone(&Utc));
+
         Ok(Card {
             file_path: file_path.to_str().unwrap().to_string(),
             headline: parsed_card.excerpt,
@@ -39,3 +48,4 @@ impl<'de> Deserialize<'de> for Card {
         })
     }
 }
+
