@@ -75,7 +75,7 @@ Should print the current board to the terminal
 
 ## View a card
 
-`workspace/ $ hmm kanban my-card`
+`workspace/ $ hmm show card my-card`
 
 Display the contents of the card at `workspace/.kanban/cards/my-card.md`
 
@@ -83,7 +83,7 @@ Just the contents, not the frontmatter
 
 ## Edit a card
 
-`workspace/ $ hmm kanban edit my-card`
+`workspace/ $ hmm edit card my-card`
 
 run `emacsclient -n workspace/.kanban/cards/my-card.md` to open it in
 the running emacs window or open a new emacs window if that doesn't
@@ -91,7 +91,7 @@ work
 
 ## Move a card into a column
 
-`workspace/ $ hmm kanban move my-card "My column"`
+`workspace/ $ hmm move my-card "My column"`
 
 Add an event to the frontmatter of `workspace/.kanban/cards/my-card.md`
 

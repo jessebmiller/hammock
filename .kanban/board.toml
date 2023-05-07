@@ -1,17 +1,21 @@
 [[columns]]
 name = "To do"
 limit = 7
+cards = ["cards/planning.md", "cards/kanban.md"]
 
 [[columns]]
 name = "In progress"
 limit = 1
+cards = []
 
 [[columns]]
 name = "Review"
 limit = 3
+cards = []
 
 [[columns]]
 name = "Done"
 display = 10
-sort_by = "last_moved_into_current_column_at"
+sort_by = "last_moved_at"
 sort_order = "desc"
+cards = []

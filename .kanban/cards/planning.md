@@ -1,16 +1,20 @@
 ---
-last_moved_into_current_column_at: "2023-05-05T14:50-05:00"
-events:
-  - created: "2023-05-05T14:50-05:00"
-  - moved_into_column:
-    name: "To do"
-    time: "2023-05-05T14:50-05:00"
-  - moved_into_column:
-    name: "In progress"
-    time: "2023-05-05T14:50-05:00"
----
+last_moved_at = "2023-05-05T14:50-05:00"
 
+[events]
+  [events.created]
+  time = "2023-05-05T14:50-05:00"
+
+  [[events.moved_into_column]]
+  name = "To do"
+  time = "2023-05-05T14:50-05:00"
+
+  [[events.moved_into_column]]
+  name = "In progress"
+  time = "2023-05-05T14:50-05:00"
+---
 # Planning space, knowledge base
+---
 
 CLI and/or TUI planing space, knowledge base, wiki
 

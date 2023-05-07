@@ -40,8 +40,29 @@ another place to do it.
 Eventually maybe we'll build tools for managing the planning
 space. But for now let's just use markdown files in a docs folder.
 
+# Notes
+
+It'll be nice to have a flexible way to deal with notes. These could
+be //TODOs or //NOTEs in code or notes in a notes file, or notes thrown in on the
+command line for later.
+
 # Config
 
 ```
 HAMMOCK_WORKSPACE_ROOT=~/work
 ```
+
+# CLI
+
+| command                            | effect                                  |
+| `workspace > hmm`                  | Show the board and latest notes         |
+| `workspace > hmm kanban`           | Launch the kanban TUI                   |
+| `workspace > hmm notes`            | Launch the noted TUI                    |
+| `workspace > hmm note "note text"` | Create a new note                       |
+| `workspace > hmm docs`             | Build docs and open them in the browser |
+
+
+
+
+
+

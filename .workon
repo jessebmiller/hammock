@@ -5,3 +5,5 @@ brave --profile-directory=Hammock > /dev/null 2>&1 &
 
 killall emacs
 emacs > /dev/null 2>&1 &
+
+cargo doc --quiet --open
