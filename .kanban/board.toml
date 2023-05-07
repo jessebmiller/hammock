@@ -1,7 +1,9 @@
 [[columns]]
 name = "To do"
 limit = 7
-cards = ["cards/planning.md", "cards/kanban.md"]
+cards = [
+      "/home/jesse/work/hammock/.kanban/cards/planning.md",
+      "/home/jesse/work/hammock/.kanban/cards/kanban.md"]
 
 [[columns]]
 name = "In progress"

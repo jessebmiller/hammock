@@ -19,23 +19,23 @@ impl<'de> Deserialize<'de> for Card {
         D: Deserializer<'de>,
     {
         let file_path: PathBuf = PathBuf::deserialize(deserializer)?;
-        let mut file = File::open(&file_path).unwrap();
+        let mut file = File::open(&file_path).expect(
+            format!("file ({}) not found", file_path.display()).as_str(),
+        );
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         let matter: Matter<TOML> = Matter::new();
         let parsed_card = matter.parse(&contents);
+        let data = parsed_card.data.as_ref().unwrap();
+        let last_moved_at_value = data["last_moved_at"].clone().as_string().ok();
+        let last_moved_at = last_moved_at_value.map(
+            |value| DateTime::parse_from_rfc3339(&value).ok()
+        ).flatten();
+        let last_moved_at_utc = last_moved_at.map(|dt| dt.with_timezone(&Utc));
         Ok(Card {
             file_path: file_path.to_str().unwrap().to_string(),
             headline: parsed_card.excerpt,
-            last_moved_at: parsed_card.data.as_ref()
-                .and_then(|data| Some(data["last_moved_at"].clone()))
-                .and_then(|last_moved_at| last_moved_at.as_string().ok())
-                .and_then(
-                    |last_moved_at|
-                    DateTime::parse_from_rfc3339(&last_moved_at)
-                        .and_then(|dt| Ok(dt.with_timezone(&Utc)))
-                        .ok()
-                )
+            last_moved_at: last_moved_at_utc,
         })
     }
 }

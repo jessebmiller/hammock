@@ -1,13 +1,17 @@
 ---
-last_moved_into_current_column_at: "2023-05-05T14:44-05:00"
-events:
-  - created: "2023-05-05T14:44-05:00"
-  - moved_into_column:
-    name: "In progress"
-    time: "2023-05-05T14:44-05:00"
----
+last_moved_at = "2023-05-05T19:50:00Z"
 
+[events]
+
+  [events.created]
+  time = "2023-05-05T19:50:00Z"
+
+  [[events.moved_into_column]]
+  name = "In progress"
+  time = "2023-05-05T19:50:00Z"
+---
 # Build the kanban system
+---
 
 CLI and/or TUI kanban board stored in text files in git
 

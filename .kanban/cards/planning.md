@@ -1,17 +1,17 @@
 ---
-last_moved_at = "2023-05-05T14:50-05:00"
+last_moved_at = "2023-05-05T19:50:00Z"
 
 [events]
   [events.created]
-  time = "2023-05-05T14:50-05:00"
+  time = "2023-05-05T19:50:00Z"
 
   [[events.moved_into_column]]
   name = "To do"
-  time = "2023-05-05T14:50-05:00"
+  time = "2023-05-05T19:50:00Z"
 
   [[events.moved_into_column]]
   name = "In progress"
-  time = "2023-05-05T14:50-05:00"
+  time = "2023-05-05T19:50:00Z"
 ---
 # Planning space, knowledge base
 ---

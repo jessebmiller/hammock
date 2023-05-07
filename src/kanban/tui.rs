@@ -38,11 +38,12 @@ pub fn run() -> Result<(), anyhow::Error> {
             let block = Block::default().borders(Borders::ALL);
             rect.render_widget(block, layout[0]);
 
-            let list_items = vec![
-                ListItem::new(Span::styled("Item 1", Style::default().fg(Color::Yellow))),
-                ListItem::new(format!("{:?}", board.columns[0].cards)),
-                ListItem::new("Item 3"),
-            ];
+            let list_items: Vec<ListItem> = board.columns[0].cards.iter().map(
+                |card|
+                ListItem::new(Span::styled(
+                    card.headline.clone().unwrap_or("No headline".to_string()),
+                    Style::default().fg(Color::Yellow))),
+            ).collect::<Vec<ListItem>>();
             let list = List::new(list_items).block(Block::default().borders(Borders::ALL));
             rect.render_widget(list, layout[1]);
         })?;
