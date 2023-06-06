@@ -1,16 +1,19 @@
+use crate::utils::{find_kanban, get_editor};
 use chrono::{DateTime, Utc};
-use serde::de::{Deserialize, Deserializer};
-use std::path::PathBuf;
-use gray_matter::Matter;
 use gray_matter::engine::TOML;
+use gray_matter::Matter;
+use serde::de::{Deserialize, Deserializer};
+use serde::ser::{Serialize, Serializer};
 use std::fs::File;
 use std::io::Read;
-use crate::utils::{find_kanban, get_editor};
 use std::io::Write;
-use std::process::{Command, exit};
+use std::path::PathBuf;
+use std::process::{exit, Command};
 use tempfile::NamedTempFile;
 
-#[derive(Debug)]
+use super::board::{load_board_from_file, save_board_to_file};
+
+#[derive(Debug, Clone)]
 pub struct Card {
     pub file_path: String,
     pub headline: Option<String>,
@@ -22,7 +25,10 @@ impl Card {
         let editor = get_editor().expect("No editor set set $VISUAL or $EDITOR");
         let temp_file_path = NamedTempFile::new()?.into_temp_path();
         let mut temp_file = File::create(&temp_file_path)?;
-        let boilerplate = format!(r#"---
+        let boilerplate = format!(
+            r#"---
+last_moved_at: "{}"
+
 [events]
   [events.created]
   time = "{}"
@@ -33,12 +39,12 @@ impl Card {
 Card content here.
 "#,
             Utc::now().to_rfc3339(),
-            headline.unwrap_or_default());
+            Utc::now().to_rfc3339(),
+            headline.unwrap_or_default()
+        );
         temp_file.write_all(boilerplate.as_bytes())?;
         let editor_arg = format!("{}", temp_file_path.display());
-        let status = Command::new(editor)
-            .arg(editor_arg)
-            .status()?;
+        let status = Command::new(editor).arg(editor_arg).status()?;
         if !status.success() {
             println!("Editor exited with non-zero status code");
             exit(1);
@@ -55,8 +61,9 @@ Card content here.
                     .trim()
                     .replace(" ", "_")
                     .to_lowercase()
-                    .to_owned() + ".md"
-            },
+                    .to_owned()
+                    + ".md"
+            }
             None => {
                 println!("No headline found in card");
                 exit(1);
@@ -64,18 +71,33 @@ Card content here.
         };
 
         let kanban_path = find_kanban()?;
-        let file_path = kanban_path.join(file_name);
+        let file_path = kanban_path.join("cards").join(file_name);
 
         let mut card_file = File::create(&file_path)?;
         card_file.write_all(contents.as_bytes())?;
-
-        println!("adding card to board NOT IMPLEMENTED!");
 
         Ok(Card {
             file_path: file_path.to_str().unwrap().to_string(),
             headline: parsed_card.excerpt,
             last_moved_at: None,
         })
+    }
+
+    pub fn add_to_board(self) -> anyhow::Result<Card> {
+        let board_path = find_kanban()?.join("board.toml");
+        let mut board = load_board_from_file(board_path.clone())?;
+        board.columns[0].cards.insert(0, self.clone());
+        save_board_to_file(&board, board_path)?;
+        Ok(self)
+    }
+}
+
+impl Serialize for Card {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.file_path)
     }
 }
 
@@ -87,9 +109,8 @@ impl<'de> Deserialize<'de> for Card {
         let file_path: PathBuf = PathBuf::deserialize(deserializer)?;
 
         // Open the card file listed in the board column card list
-        let mut file = File::open(&file_path).expect(
-            format!("file ({}) not found", file_path.display()).as_str(),
-        );
+        let mut file = File::open(&file_path)
+            .expect(format!("file ({}) not found", file_path.display()).as_str());
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
 
@@ -100,9 +121,9 @@ impl<'de> Deserialize<'de> for Card {
 
         // If there is a last moved at date, parse it
         let last_moved_at_value = data["last_moved_at"].clone().as_string().ok();
-        let last_moved_at = last_moved_at_value.map(
-            |value| DateTime::parse_from_rfc3339(&value).ok()
-        ).flatten();
+        let last_moved_at = last_moved_at_value
+            .map(|value| DateTime::parse_from_rfc3339(&value).ok())
+            .flatten();
 
         // If there is a date, convert it to a DateTime<Utc>
         let last_moved_at_utc = last_moved_at.map(|dt| dt.with_timezone(&Utc));
@@ -114,4 +135,3 @@ impl<'de> Deserialize<'de> for Card {
         })
     }
 }
-

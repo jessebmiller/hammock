@@ -1,16 +1,12 @@
 [[columns]]
 name = "To do"
 limit = 7
-cards = [
-      "/home/jesse/work/hammock/.kanban/cards/planning.md",
-      ]
+cards = ["/home/jesse/work/hammock/.kanban/cards/card_transitions.md", "/home/jesse/work/hammock/.kanban/cards/notes_tui.md", "/home/jesse/work/hammock/.kanban/cards/planning.md", "/home/jesse/work/hammock/.kanban/cards/design_herd_style_commands.md", "/home/jesse/work/hammock/.kanban/cards/add_new_cards_to_board.md"]
 
 [[columns]]
 name = "In progress"
 limit = 1
-cards = [
-      "/home/jesse/work/hammock/.kanban/cards/kanban.md",
-      ]
+cards = ["/home/jesse/work/hammock/.kanban/cards/kanban.md"]
 
 [[columns]]
 name = "Done"

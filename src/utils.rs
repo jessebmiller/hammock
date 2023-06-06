@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub fn get_editor() -> Option<String> {
     if let Ok(editor) = env::var("VISUAL") {

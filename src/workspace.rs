@@ -1,7 +1,7 @@
+use crate::kanban::board::{load_board_from_file, Board};
+use crate::notes::{load_notes, Note};
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
-use crate::kanban::board::{Board, load_board_from_file};
-use crate::notes::{Note, load_notes};
 
 #[derive(Debug)]
 pub struct Workspace {

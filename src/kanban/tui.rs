@@ -38,12 +38,18 @@ pub fn run() -> Result<(), anyhow::Error> {
             let block = Block::default().borders(Borders::ALL);
             rect.render_widget(block, layout[0]);
 
-            let list_items: Vec<ListItem> = board.columns[0].cards.iter().map(
-                |card|
-                ListItem::new(Span::styled(
-                    card.headline.clone().unwrap_or("No headline (no excerpt)".to_string()),
-                    Style::default().fg(Color::Yellow))),
-            ).collect::<Vec<ListItem>>();
+            let list_items: Vec<ListItem> = board.columns[0]
+                .cards
+                .iter()
+                .map(|card| {
+                    ListItem::new(Span::styled(
+                        card.headline
+                            .clone()
+                            .unwrap_or("No headline (no excerpt)".to_string()),
+                        Style::default().fg(Color::Yellow),
+                    ))
+                })
+                .collect::<Vec<ListItem>>();
             let list = List::new(list_items).block(Block::default().borders(Borders::ALL));
             rect.render_widget(list, layout[1]);
         })?;

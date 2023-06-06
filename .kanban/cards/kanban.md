@@ -10,7 +10,7 @@ last_moved_at = "2023-05-05T19:50:00Z"
   name = "In progress"
   time = "2023-05-05T19:50:00Z"
 ---
-# Build the kanban system
+# Start the kanban system
 ---
 
 CLI and/or TUI kanban board stored in text files in git
