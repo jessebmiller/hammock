@@ -11,6 +11,8 @@ pub struct Args {
 pub enum Command {
     #[command(about = "Manage the current workspace kanban board")]
     Kanban,
+    #[command(about = "Add a card to the leftmost column of the kanban board")]
+    Card { headline: Option<String> },
     #[command(about = "Manage the current workspace notes")]
     Notes,
     #[command(about = "Add a new note to the workspace")]

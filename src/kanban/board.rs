@@ -22,3 +22,4 @@ pub fn load_board_from_file<P: AsRef<Path>>(file_path: P) -> anyhow::Result<Boar
     let board: Board = toml::from_str(&contents)?;
     Ok(board)
 }
+

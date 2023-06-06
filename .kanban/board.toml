@@ -3,17 +3,14 @@ name = "To do"
 limit = 7
 cards = [
       "/home/jesse/work/hammock/.kanban/cards/planning.md",
-      "/home/jesse/work/hammock/.kanban/cards/kanban.md"]
+      ]
 
 [[columns]]
 name = "In progress"
 limit = 1
-cards = []
-
-[[columns]]
-name = "Review"
-limit = 3
-cards = []
+cards = [
+      "/home/jesse/work/hammock/.kanban/cards/kanban.md",
+      ]
 
 [[columns]]
 name = "Done"
