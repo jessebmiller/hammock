@@ -1,0 +1,18 @@
+[[columns]]
+name = "To Do"
+dir_name = "to_do"
+limit = 7
+show_headlines_in_summary = true
+
+[[columns]]
+name = "In Progress"
+dir_name = "in_progress"
+limit = 1
+show_headlines_in_summary = true
+
+[[columns]]
+name = "Done"
+dir_name = "done"
+display = 10
+sort_by = "last_moved_at"
+sort_order = "desc"

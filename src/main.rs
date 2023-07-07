@@ -7,6 +7,7 @@ mod workspace;
 use args::{Args, Command};
 use clap::Parser;
 use kanban::card::Card;
+use kanban::board::load_board;
 
 fn main() {
     let args = Args::parse();
@@ -15,9 +16,8 @@ fn main() {
             kanban::tui::run().expect("Failed to run kanban TUI");
         }
         Some(Command::Card { headline }) => {
-            match Card::new(headline)
-                .map(|c| c.add_to_board().expect("Failed to add card to board"))
-            {
+            let column = load_board().unwrap().columns[0].name.clone();
+            match Card::new(headline, column) {
                 Ok(card) => {
                     println!(
                         "Created card: {}",
@@ -49,6 +49,6 @@ fn main() {
 
 fn default_command() {
     for w in &workspace::workspaces() {
-        println!("{}\n", w.summary());
+        println!("{}", w.summary());
     }
 }

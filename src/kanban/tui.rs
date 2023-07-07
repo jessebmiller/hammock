@@ -12,7 +12,7 @@ use tui::{
     Terminal,
 };
 
-use super::board::{load_board_from_file, Board};
+use super::board::{load_board, Board};
 
 pub fn run() -> Result<(), anyhow::Error> {
     let stdout = io::stdout();
@@ -23,7 +23,7 @@ pub fn run() -> Result<(), anyhow::Error> {
     terminal::enable_raw_mode()?;
     execute!(terminal.backend_mut(), terminal::EnterAlternateScreen)?;
 
-    let board: Board = load_board_from_file(".kanban/board.toml")?;
+    let board: Board = load_board()?;
 
     loop {
         terminal.draw(|rect| {
@@ -39,7 +39,8 @@ pub fn run() -> Result<(), anyhow::Error> {
             rect.render_widget(block, layout[0]);
 
             let list_items: Vec<ListItem> = board.columns[0]
-                .cards
+                .get_cards()
+                .expect("Failed to get cards")
                 .iter()
                 .map(|card| {
                     ListItem::new(Span::styled(

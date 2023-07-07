@@ -1,4 +1,4 @@
-use crate::kanban::board::{load_board_from_file, Board};
+use crate::kanban::board::{load_board_at, Board};
 use crate::notes::{load_notes, Note};
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
@@ -23,38 +23,32 @@ impl Workspace {
             .unwrap()
             .as_secs();
 
-        let board = load_board_from_file(&root.join(".kanban/board.toml")).ok();
+        let board = load_board_at(&root.join(".kanban"));
+
         Self {
             root: root.clone(),
             name,
             updated_at,
-            board,
+            board: board.ok(),
             notes: load_notes(root),
         }
     }
 
     pub fn summary(&self) -> String {
         let mut summary = String::new();
-        summary.push_str(&format!("{}: ", self.name));
+        summary.push_str(&format!("{}:\n", self.name));
 
-        // show card headlines in To do and In progress
+        // show card headlines for columns set to show headlines in summary
         if let Some(board) = &self.board {
-            if let Some(c) = board.columns.iter().find(|c| c.name == "To do") {
-                summary.push_str(&format!("\n  To do:"));
-                for c in &c.cards {
-                    if let Some(headline) = &c.headline {
-                        summary.push_str(&format!("\n    {}", headline));
-                    }
-                }
-            }
-            if let Some(c) = board.columns.iter().find(|c| c.name == "In progress") {
-                summary.push_str(&format!("\n  In progress:"));
-                for c in &c.cards {
-                    if let Some(headline) = &c.headline {
-                        summary.push_str(&format!("\n    {}", headline));
-                    }
-                }
-            }
+            board.columns.iter().filter(|c| c.show_headlines_in_summary.unwrap_or(false)).for_each(|c| {
+                summary.push_str(&format!("  {}:\n", c.name));
+                c.get_cards().expect("failed to get cards, check .kanban/board/.conf.toml").iter().for_each(|c| {
+                    summary.push_str(&format!(
+                        "    {}\n",
+                        c.clone().headline.unwrap_or("<missing headline>".to_string())
+                    ));
+                });
+            });
         }
 
         // show up to 3 notes
