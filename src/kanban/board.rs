@@ -67,10 +67,14 @@ impl Board {
                 }
                 match card.move_to_column(&self.columns[column_index - 1]) {
                     Ok(_) => {
-                        println!("Moved card left");
+                        println!(
+                            "Moved \"{}\" into column {}",
+                            card.headline.as_ref().unwrap(),
+                            self.columns[column_index - 1].name,
+                        );
                     }
                     Err(e) => {
-                        println!("Failed to move card left: {}", e);
+                        println!("Failed to move card: {}", e);
                     }
                 }
             }
@@ -81,10 +85,14 @@ impl Board {
                 }
                 match card.move_to_column(&self.columns[column_index + 1]) {
                     Ok(_) => {
-                        println!("Moved card right");
+                        println!(
+                            "Moved \"{}\" into column {}",
+                            card.headline.as_ref().unwrap(),
+                            self.columns[column_index + 1].name,
+                        );
                     }
                     Err(e) => {
-                        println!("Failed to move card right: {}", e);
+                        println!("Failed to move card: {}", e);
                     }
                 }
             }
