@@ -1,4 +1,5 @@
 use super::find_kanban;
+use super::board::Column;
 use crate::utils::get_editor;
 use chrono::{DateTime, Utc};
 use gray_matter::engine::TOML;
@@ -10,17 +11,15 @@ use std::process::{exit, Command};
 use tempfile::NamedTempFile;
 use std::ffi::OsStr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Card {
     pub file_path: PathBuf,
     pub headline: Option<String>,
     pub last_moved_at: Option<DateTime<Utc>>,
 }
 
-pub fn load_column_cards(column_dir_name: &str) -> anyhow::Result<Vec<Card>> {
-    let column_dir = find_kanban()?.join("board").join(column_dir_name);
-
-    let cards = read_dir(&column_dir)?.filter_map(|entry| {
+pub fn load_column_cards<P: AsRef<Path>>(column_path: P) -> anyhow::Result<Vec<Card>> {
+    let cards = read_dir(&column_path)?.filter_map(|entry| {
         let entry = entry.ok()?;
         let file_path = entry.path();
         if file_path.extension() == Some(OsStr::new("md")) {
@@ -58,13 +57,13 @@ fn load_card<P: AsRef<Path>>(path: P) -> anyhow::Result<Card> {
 
     Ok(Card {
         file_path: path.as_ref().to_path_buf(),
-        headline: parsed_card.excerpt,
+        headline: parsed_card.excerpt.map(|s| s.replace("# ", "").trim().to_string()),
         last_moved_at: last_moved_at_utc,
     })
 }
 
 impl Card {
-    pub fn new(headline: Option<String>, column: String) -> anyhow::Result<Self> {
+    pub fn new(headline: Option<String>, column: &Column) -> anyhow::Result<Self> {
         let editor = get_editor().expect("No editor set set $VISUAL or $EDITOR");
         let temp_file_path = NamedTempFile::new()?.into_temp_path();
         let mut temp_file = File::create(&temp_file_path)?;
@@ -113,15 +112,33 @@ Card content here.
             }
         };
 
-        let file_path = find_kanban()?.join("board").join(column).join(file_name);
+        let file_path = find_kanban()?.join(&column.dir_name).join(&file_name);
+        println!("Saving card to {:?}", file_path);
 
         let mut card_file = File::create(&file_path)?;
         card_file.write_all(contents.as_bytes())?;
 
         Ok(Card {
             file_path,
-            headline: parsed_card.excerpt,
+            headline: parsed_card.excerpt.map(|excerpt| excerpt.replace("#", "").trim().to_owned()),
             last_moved_at: None,
         })
+    }
+
+    pub fn move_to_column(&mut self, column: &Column) -> anyhow::Result<()> {
+        let mut file = File::open(&self.file_path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let matter: Matter<TOML> = Matter::new();
+        let mut parsed_card = matter.parse(&contents);
+        if let Some(data) = parsed_card.data.as_mut() {
+            data["last_moved_at"] = Utc::now().to_rfc3339().into();
+        }
+        let mut card_file = File::create(&self.file_path)?;
+        card_file.write_all(contents.as_bytes())?;
+        let new_file_path = find_kanban()?.join(&column.dir_name).join(&self.file_path.file_name().unwrap());
+        std::fs::rename(&self.file_path, &new_file_path)?;
+        self.file_path = new_file_path;
+        Ok(())
     }
 }

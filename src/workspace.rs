@@ -23,7 +23,7 @@ impl Workspace {
             .unwrap()
             .as_secs();
 
-        let board = load_board_at(&root.join(".kanban"));
+        let board = load_board_at(&root);
 
         Self {
             root: root.clone(),
@@ -42,12 +42,19 @@ impl Workspace {
         if let Some(board) = &self.board {
             board.columns.iter().filter(|c| c.show_headlines_in_summary.unwrap_or(false)).for_each(|c| {
                 summary.push_str(&format!("  {}:\n", c.name));
-                c.get_cards().expect("failed to get cards, check .kanban/board/.conf.toml").iter().for_each(|c| {
-                    summary.push_str(&format!(
-                        "    {}\n",
-                        c.clone().headline.unwrap_or("<missing headline>".to_string())
-                    ));
-                });
+                match c.get_cards() {
+                    Ok(cards) => {
+                        cards.iter().for_each(|c| {
+                            summary.push_str(&format!(
+                                "    {}\n",
+                                c.clone().headline.unwrap_or("<missing headline>".to_string())
+                            ));
+                        });
+                    }
+                    Err(e) => {
+                        println!("Error loading cards for column {}: {}", c.name, e);
+                    }
+                }
             });
         }
 

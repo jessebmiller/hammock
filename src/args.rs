@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{ValueEnum, Parser};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -19,6 +19,9 @@ pub enum Command {
     #[command(about = "Add a card to the leftmost column of the kanban board")]
     Card { headline: Option<String> },
 
+    #[command(about = "Move a card to the left or right")]
+    Move { headline: String, direction: Option<Direction> },
+
     #[command(about = "Manage the current workspace notes")]
     Notes,
 
@@ -33,6 +36,16 @@ pub enum Command {
         #[clap(subcommand)]
         object: ShowObject,
     },
+}
+
+#[derive(Parser, Debug, Clone, ValueEnum)]
+pub enum Direction {
+    Left,
+    Right,
+}
+
+pub fn default_direction() -> Direction {
+    Direction::Right
 }
 
 #[derive(Parser, Debug)]
