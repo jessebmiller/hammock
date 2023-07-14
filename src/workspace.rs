@@ -72,6 +72,20 @@ impl Workspace {
     }
 }
 
+pub fn find_current_workspace() -> Option<Workspace> {
+    let home = std::env::var("HOME").unwrap();
+    let root = PathBuf::from(home).join("work").canonicalize().ok()?;
+    let mut current_dir = std::env::current_dir().unwrap().canonicalize().unwrap();
+    if current_dir.starts_with(&root) && current_dir != root {
+        while current_dir.parent() != Some(&root) {
+            current_dir.pop();
+        }
+        Some(Workspace::new(current_dir))
+    } else {
+        None
+    }
+}
+
 pub fn workspaces() -> Vec<Workspace> {
     let mut workspaces = Vec::new();
     let home = std::env::var("HOME").unwrap();

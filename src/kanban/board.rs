@@ -1,10 +1,10 @@
 use super::card::Card;
-use crate::find_current_workspace;
 use crate::kanban::card::load_column_cards;
 use crate::args::{Direction, default_direction};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{PathBuf, Path};
+use crate::kanban::find_current_workspace_root;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Board {
@@ -111,7 +111,7 @@ impl Column {
 }
 
 pub fn load_board() -> anyhow::Result<Board> {
-    load_board_at(find_current_workspace()?)
+    load_board_at(find_current_workspace_root()?)
 }
 
 pub fn load_board_at<P: AsRef<Path>>(path: P) -> anyhow::Result<Board> {

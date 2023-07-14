@@ -22,6 +22,9 @@ pub enum Command {
     #[command(about = "Move a card to the left or right")]
     Move { headline: String, direction: Option<Direction> },
 
+    #[command(about = "Edit a card")]
+    Edit { headline: String },
+
     #[command(about = "Manage the current workspace notes")]
     Notes,
 
