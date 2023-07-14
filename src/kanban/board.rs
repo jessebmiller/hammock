@@ -24,40 +24,40 @@ pub struct Column {
     pub show_headlines_in_summary: Option<bool>,
 }
 
+pub struct FoundCard {
+    pub card: Card,
+    pub column_position: usize,
+}
+
 impl Board {
-    pub fn move_card(self, headline: String, direction: Option<Direction>) {
-        let mut found: Option<Card> = None;
-        let mut found_in_column_index: Option<usize> = None;
-        for (i, column) in self.columns.iter().enumerate() {
-            for card in column.get_cards().unwrap() {
+    pub fn find_cards_by_headline_prefix(&self, headline: &str) -> Vec<FoundCard> {
+        let mut found_cards = Vec::new();
+        for (column_position, column) in self.columns.iter().enumerate() {
+            let cards = column.get_cards().unwrap();
+            for card in cards {
                 if let Some(card_headline) = &card.headline {
-                    if card_headline.starts_with(&headline) {
-                        if found.is_some() {
-                            println!("Found multiple cards with headline starting with {}", headline);
-                            return;
-                        }
-                        found_in_column_index = Some(i);
-                        found = Some(card);
+                    if card_headline.starts_with(headline) {
+                        found_cards.push(FoundCard {
+                            card,
+                            column_position,
+                        });
                     }
                 }
             }
         }
+        found_cards
+    }
 
-        let mut card = match found {
-            Some(card) => card,
-            None => {
-                println!("No card found with headline starting with {}", headline);
-                return;
-            }
-        };
+    pub fn move_card(self, headline: String, direction: Option<Direction>) {
 
-        let column_index = match found_in_column_index {
-            Some(i) => i,
-            None => {
-                println!("No column found with card with headline starting with {}", headline);
-                return;
-            }
-        };
+        let found = self.find_cards_by_headline_prefix(&headline);
+        if found.len() != 1 {
+            println!("Found {} cards with headline prefix '{}'.", found.len(), headline);
+            return;
+        }
+
+        let mut card = found[0].card.clone();
+        let column_index = found[0].column_position;
 
         match direction.unwrap_or(default_direction()) {
             Direction::Left => {

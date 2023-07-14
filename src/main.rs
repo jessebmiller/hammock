@@ -7,6 +7,9 @@ mod workspace;
 use std::path::PathBuf;
 use std::env;
 
+use gray_matter::Matter;
+use gray_matter::engine::TOML;
+
 use args::{Args, Command};
 use clap::Parser;
 use kanban::card::Card;
@@ -61,7 +64,22 @@ fn main() {
             println!("Building and serving Docs (not implemented)");
         }
         Some(Command::Show { object }) => {
-            println!("Showing some object (not implemented) {:?}", object);
+            match object {
+                args::ShowObject::Card { headline } => {
+                    load_board().unwrap().find_cards_by_headline_prefix(&headline).iter().for_each(|found| {
+                        let contents = std::fs::read_to_string(found.card.file_path.clone()).unwrap();
+                        let matter: Matter<TOML> = Matter::new();
+                        let parsed_card = matter.parse(&contents);
+                        println!("{}", termimad::inline(&parsed_card.content));
+                    });
+                }
+                args::ShowObject::Kanban => {
+                    println!("Showing kanban board (not implemented)");
+                }
+                args::ShowObject::Notes => {
+                    println!("Showing notes (not implemented)");
+                }
+            }
         }
         Some(Command::Move { headline, direction }) => {
             load_board().unwrap().move_card(headline, direction);

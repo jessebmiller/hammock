@@ -50,6 +50,9 @@ pub fn default_direction() -> Direction {
 
 #[derive(Parser, Debug)]
 pub enum ShowObject {
+    #[command(about = "Show the matching card")]
+    Card { headline: String },
+
     #[command(about = "Show the current workspace kanban board")]
     Kanban,
 
