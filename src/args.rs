@@ -25,20 +25,14 @@ pub enum Command {
     #[command(about = "Edit a card")]
     Edit { headline: String },
 
-    #[command(about = "Manage the current workspace notes")]
-    Notes,
-
-    #[command(about = "Add a new note to the workspace")]
-    Note { text: String },
-
-    #[command(about = "Build and serve documentation for the current workspace")]
-    Docs,
-
     #[command(about = "Show various objects in the current workspace")]
     Show {
         #[clap(subcommand)]
         object: ShowObject,
     },
+
+    #[command(about = "Initialize a workspace")]
+    Init { name: Option<String> },
 }
 
 #[derive(Parser, Debug, Clone, ValueEnum)]
@@ -55,10 +49,4 @@ pub fn default_direction() -> Direction {
 pub enum ShowObject {
     #[command(about = "Show the matching card")]
     Card { headline: String },
-
-    #[command(about = "Show the current workspace kanban board")]
-    Kanban,
-
-    #[command(about = "Show the current workspace notes")]
-    Notes,
 }

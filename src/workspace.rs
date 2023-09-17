@@ -2,6 +2,8 @@ use crate::kanban::board::{load_board_at, Board};
 use crate::notes::{load_notes, Note};
 use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
+use std::fs::{create_dir_all, File};
+use std::io::prelude::*;
 
 #[derive(Debug)]
 pub struct Workspace {
@@ -86,10 +88,14 @@ pub fn find_current_workspace() -> Option<Workspace> {
     }
 }
 
+fn get_workspace_root() -> PathBuf {
+    let home = std::env::var("HOME").unwrap();
+    PathBuf::from(home).join("work").canonicalize().unwrap()
+}
+
 pub fn workspaces() -> Vec<Workspace> {
     let mut workspaces = Vec::new();
-    let home = std::env::var("HOME").unwrap();
-    let root = PathBuf::from(home).join("work");
+    let root = get_workspace_root();
     for entry in root.read_dir().unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -99,4 +105,58 @@ pub fn workspaces() -> Vec<Workspace> {
     }
     workspaces.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     workspaces
+}
+
+const DEFAULT_KANBAN_CONF: &str = r#"
+[[columns]]
+name = "To Do"
+dir_name = "to_do"
+limit = 7
+show_headlines_in_summary = true
+
+[[columns]]
+name = "In Progress"
+dir_name = "in_progress"
+limit = 1
+show_headlines_in_summary = true
+
+[[columns]]
+name = "Done"
+dir_name = "done"
+display = 10
+sort_by = "last_moved_at"
+sort_order = "desc"
+[[column]]
+"#;
+
+pub fn init_workspace(name: Option<String>) -> anyhow::Result<()> {
+    let root = get_workspace_root();
+    let path = match name {
+        Some(name) => root.join(name),
+        None => {
+            let pwd = std::env::current_dir()?;
+            if pwd.parent() == Some(&root) {
+                pwd.clone()
+            } else {
+                println!("Cannot initialize workspace in {} must be in {}", pwd.display(), root.display());
+                return Err(anyhow::anyhow!("Failed to initialize workspace"));
+            }
+        }
+    };
+
+    if !path.exists() {
+        create_dir_all(&path)?;
+    }
+    if path.join(".kanban").exists() {
+        println!("Workspace already initialized at {}", path.display());
+        return Ok(());
+    }
+    create_dir_all(path.join(".kanban"))?;
+    let mut conf_file = File::create(path.join(".kanban").join(".conf.toml"))?;
+    conf_file.write_all(DEFAULT_KANBAN_CONF.as_bytes())?;
+    create_dir_all(path.join(".kanban").join("to_do"))?;
+    create_dir_all(path.join(".kanban").join("in_progress"))?;
+    create_dir_all(path.join(".kanban").join("done"))?;
+    println!("Initialized workspace at {}", path.display());
+    Ok(())
 }

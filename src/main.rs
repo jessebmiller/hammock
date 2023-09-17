@@ -38,15 +38,6 @@ fn main() {
                 }
             }
         }
-        Some(Command::Notes) => {
-            println!("Running Notes TUI (not implemented)");
-        }
-        Some(Command::Note { text }) => {
-            println!("Adding note: {} (not implemented)", text);
-        }
-        Some(Command::Docs) => {
-            println!("Building and serving Docs (not implemented)");
-        }
         Some(Command::Show { object }) => {
             match object {
                 args::ShowObject::Card { headline } => {
@@ -56,12 +47,6 @@ fn main() {
                         let parsed_card = matter.parse(&contents);
                         println!("{}", termimad::inline(&parsed_card.content));
                     });
-                }
-                args::ShowObject::Kanban => {
-                    println!("Showing kanban board (not implemented)");
-                }
-                args::ShowObject::Notes => {
-                    println!("Showing notes (not implemented)");
                 }
             }
         }
@@ -80,6 +65,9 @@ fn main() {
         }
         Some(Command::Move { headline, direction }) => {
             load_board().unwrap().move_card(headline, direction);
+        }
+        Some(Command::Init { name }) => {
+            workspace::init_workspace(name).expect("Failed to initialize workspace");
         }
         None => {
             match find_current_workspace() {
