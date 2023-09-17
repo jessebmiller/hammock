@@ -3,6 +3,17 @@
 CLI tools for hammock driven development, or whatever drives my
 development.
 
+# Install
+
+I haven't done any work on distrubution and don't expect to for a while.
+However you can of course clone this repo and do a 
+
+`$ cargo install --path .`
+
+from the root of the project. Of couse you'll need to
+[install cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+fisrt if you haven't already.
+
 # Workspaces
 
 Hammock recognizes workspaces under ~/work or `HAMMOCK_WORKSPACE_ROOT`
