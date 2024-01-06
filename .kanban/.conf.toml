@@ -1,4 +1,9 @@
 [[columns]]
+name = "Backlog"
+dir_name = "backlog"
+show_headlines_in_summary = true
+
+[[columns]]
 name = "To Do"
 dir_name = "to_do"
 limit = 7
@@ -16,3 +21,4 @@ dir_name = "done"
 display = 10
 sort_by = "last_moved_at"
 sort_order = "desc"
+

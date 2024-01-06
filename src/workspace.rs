@@ -88,7 +88,7 @@ pub fn find_current_workspace() -> Option<Workspace> {
     }
 }
 
-fn get_workspace_root() -> PathBuf {
+pub fn get_workspace_root() -> PathBuf {
     let home = std::env::var("HOME").unwrap();
     PathBuf::from(home).join("work").canonicalize().unwrap()
 }
@@ -108,6 +108,11 @@ pub fn workspaces() -> Vec<Workspace> {
 }
 
 const DEFAULT_KANBAN_CONF: &str = r#"
+[[columns]]
+name = "Backlog"
+dir_name = "backlog"
+show_headlines_in_summary = true
+
 [[columns]]
 name = "To Do"
 dir_name = "to_do"

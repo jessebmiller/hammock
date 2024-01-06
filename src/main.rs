@@ -9,16 +9,37 @@ mod workspace;
 
 use gray_matter::Matter;
 use gray_matter::engine::TOML;
+use serde::Deserialize;
+use std::fs;
+use std::path::PathBuf;
 
 use args::{Args, Command};
 use clap::Parser;
 use kanban::card::Card;
 use kanban::board::load_board;
-use workspace::find_current_workspace;
+use workspace::{get_workspace_root, find_current_workspace, Workspace};
 
 use crate::utils::get_editor;
 
+#[derive(Debug, Deserialize)]
+struct Hammock {
+    priority_workspace: String,
+    goals: String,
+}
+
+impl Hammock {
+    fn new() -> Self {
+        let hammock_file = get_workspace_root().join("Hammock");
+        let config = fs::read_to_string(&hammock_file).unwrap();
+        return toml::from_str(&config).unwrap();
+    }
+}
+
 fn main() {
+    let hammock = Hammock::new();
+    println!("\n*** GOAL\n{}", hammock.goals);
+    let priority_workspace = Workspace::new(get_workspace_root().join(hammock.priority_workspace));
+    println!("\n*** Priority\n{}", priority_workspace.summary());
     let args = Args::parse();
     match args.command {
         Some(Command::Kanban) => {
@@ -75,12 +96,7 @@ fn main() {
                     println!("{}", workspace.summary());
                     return;
                 }
-                None => {
-                    println!("not in a workspace, summarizing all workspaces");
-                }
-            }
-            for w in &workspace::workspaces() {
-                println!("{}", w.summary());
+                None => {}
             }
         }
     }
