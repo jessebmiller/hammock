@@ -159,6 +159,7 @@ pub fn init_workspace(name: Option<String>) -> anyhow::Result<()> {
     create_dir_all(path.join(".kanban"))?;
     let mut conf_file = File::create(path.join(".kanban").join(".conf.toml"))?;
     conf_file.write_all(DEFAULT_KANBAN_CONF.as_bytes())?;
+    create_dir_all(path.join(".kanban").join("backlog"))?;
     create_dir_all(path.join(".kanban").join("to_do"))?;
     create_dir_all(path.join(".kanban").join("in_progress"))?;
     create_dir_all(path.join(".kanban").join("done"))?;

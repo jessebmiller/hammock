@@ -16,3 +16,10 @@ goal = "My goal right now is to ..."
 ```
 
 Workspace `.conf.toml` specifies a project goal and shows it in the summary
+
+Right now the priority summary is shown on every command. Maybe just the main
+goal and then the name of the priority project and in progress and top of todo
+
+Show the whole summary for the default command when not in a workspace
+
+only show goal and priority project stuff on the default command

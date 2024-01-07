@@ -33,7 +33,10 @@ pub enum Command {
 
     #[command(about = "Initialize a workspace")]
     Init { name: Option<String> },
-}
+
+    #[command(about = "Go to the priority workspace")]
+    Go,
+
 
 #[derive(Parser, Debug, Clone, ValueEnum)]
 pub enum Direction {

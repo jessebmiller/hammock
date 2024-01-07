@@ -1,0 +1,9 @@
+name = "Personal Organization System"
+goal = """
+A sustainable and productive organizational system to help
+* Finish projects!
+* Remember life responsiblities!
+* Focus!
+"""
+start = 2024-01-01
+deadline = 2024-01-31

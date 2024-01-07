@@ -37,9 +37,6 @@ impl Hammock {
 
 fn main() {
     let hammock = Hammock::new();
-    println!("\n*** GOAL\n{}", hammock.goals);
-    let priority_workspace = Workspace::new(get_workspace_root().join(hammock.priority_workspace));
-    println!("\n*** Priority\n{}", priority_workspace.summary());
     let args = Args::parse();
     match args.command {
         Some(Command::Kanban) => {
@@ -50,9 +47,9 @@ fn main() {
             match Card::new(headline, column) {
                 Ok(card) => {
                     println!(
-                        "Created card: {}",
-                        card.headline.unwrap_or("<empty headline>".to_string())
-                    );
+                    "Created card: {}",
+                    card.headline.unwrap_or("<empty headline>".to_string())
+                );
                 }
                 Err(e) => {
                     println!("Failed to create card: {}", e);
@@ -91,12 +88,16 @@ fn main() {
             workspace::init_workspace(name).expect("Failed to initialize workspace");
         }
         None => {
+            println!("\n*** GOAL\n{}", hammock.goals);
             match find_current_workspace() {
                 Some(workspace) => {
-                    println!("{}", workspace.summary());
+                    println!("\n{}", workspace.summary());
                     return;
                 }
-                None => {}
+                None => {
+                    let priority_workspace = Workspace::new(get_workspace_root().join(hammock.priority_workspace));
+                    println!("\n*** Priority\n{}", priority_workspace.summary());
+                }
             }
         }
     }
