@@ -24,7 +24,7 @@ By default add new cards to the top of the list, but accept an optional rank or 
 [ ] `hammock card [--rank|-r int] [--bottom] [HEADLINE...]`
 
 +++
-created_at=2024-01-07T12:34
+created_at=2024-01-07T12:34:00
 hammock_type = "Card"
 priority_rank = 1
 +++
