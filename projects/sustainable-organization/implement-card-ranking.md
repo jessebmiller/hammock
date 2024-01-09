@@ -15,13 +15,22 @@ just support metamatter at the bottom where it's most convinient for now)
 so commands like
 
 List the backlog in rank order with
-[ ] `hammock list`
+
+[x] `hammock list`
 
 Update card with rank x to rank y by shuffling around all the ranks to make room
+
 [ ] `hammock move <x> <y>`
 
-By default add new cards to the top of the list, but accept an optional rank or explicit `bottom`
-[ ] `hammock card [--rank|-r int] [--bottom] [HEADLINE...]`
+By default add new cards to the top of the list, in the future accept an
+optional rank or explicit `bottom`
+
+[ ] `hammock new`
+
+Future work could also include adding functionality for other new thigns like
+projects, or workspaces or other newly invented things. Or a quick card mode
+where you can input the content inline (like in `git commit -m "commit
+message"`)
 
 +++
 created_at=2024-01-07T12:34:00
