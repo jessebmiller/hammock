@@ -32,6 +32,24 @@ func (p project) Backlog() ([]card, error) {
 	return cards, nil
 }
 
+// project.NormalizePriorityRanks makes priority ranks of each card sequential
+// starting at 1 and incrementing by 1
+// Resolves conflicts by whim
+func (p project) NormalizePriorityRanks() error {
+	backlog, err := p.Backlog()
+	if err != nil {
+		return err
+	}
+	for i, card := range backlog {
+		card.Priority = i+1
+		err = card.Write()
+		if err != nil {
+			return err 
+		}
+	}
+	return nil
+}
+
 // readProject reads a project from a path
 // path must be a directory with a valid Project.toml file in it
 func readProject(path string) (project, error) {

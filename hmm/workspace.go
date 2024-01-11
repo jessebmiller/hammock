@@ -39,7 +39,7 @@ func (ws workspace) ActiveProjects() ([]project, error) {
 
 	return activeProjects, nil
 }
-
+ 
 // readWorkspace reads a workspace from a path
 // path must be a directory with a Workspace.toml file in it
 func readWorkspace(path string) (workspace, error) {

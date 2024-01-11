@@ -6,14 +6,41 @@ import (
 	"bufio"
 	"path/filepath"
 	"strings"
+	"bytes"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 type card struct {
-	Headline string
-	Text     string
-	Priority int
+	Path		string
+	Headline	string
+	Text		string
+        Priority	int		`toml:"priority"`
+	CreatedAt	time.Time	`toml:"created_at"`
+}
+
+func (c *card) Write() error {
+	buf := new(bytes.Buffer)
+	err := toml.NewEncoder(buf).Encode(map[string]any{
+		"priority": c.Priority,
+		"created_at": c.CreatedAt,
+		"hammock_type": "Card",
+	})
+	if err != nil {
+		return err
+	}
+	content := strings.Join([]string{
+		c.Text,
+		"+++",
+		buf.String(),
+	}, "\n")
+	err = os.WriteFile(c.Path, []byte(content), 0644)
+	if err != nil {
+		return err
+	}
+	
+	return nil
 }
 
 // readCard tries to read a path into a card struct
@@ -23,30 +50,35 @@ func readCard(path string) (card, error) {
 		return card{}, err
 	}
 	defer f.Close()
-
-	headline := ""
-	text := ""
+	var lines []string
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() && scanner.Text() != "+++" {
-		headlinePrefix := "# "
-		if headline == "" && strings.HasPrefix(scanner.Text(), headlinePrefix) {
-			headline = strings.TrimPrefix(scanner.Text(), headlinePrefix)
-		}
-		text = text + "\n" + scanner.Text()
+		lines = append(lines, scanner.Text())
 	}
 
-	var metaTOML string
+	if len(lines) < 1 {
+		return card{}, fmt.Errorf("No card text found")
+	}
+
+	headline := lines[0]
+	headlinePrefix := "# "
+	if strings.HasPrefix(lines[0], headlinePrefix) {
+		headline = strings.TrimPrefix(lines[0], headlinePrefix)
+	}
+
+	var footnote string
 	for scanner.Scan() && scanner.Text() != "+++" {
-		metaTOML = metaTOML + "\n" + scanner.Text()
+		footnote = footnote + "\n" + scanner.Text()
 	}
 
 	var maybeCard struct {
-		HammockType  string `toml:"hammock_type"`
-		PriorityRank int    `toml:"priority_rank"`
+		HammockType	string		`toml:"hammock_type"`
+		Priority	int		`toml:"priority"`
+		CreatedAt	time.Time	`toml:"created_at"`
 	}
 
-	_, err = toml.Decode(metaTOML, &maybeCard)
+	_, err = toml.Decode(footnote, &maybeCard)
 	if err != nil {
 		return card{}, err
 	}
@@ -55,7 +87,13 @@ func readCard(path string) (card, error) {
 		return card{}, fmt.Errorf("Not a card (%s)", path)
 	}
 
-	return card{headline, text, maybeCard.PriorityRank}, nil
+	return card{
+		path,
+		headline,
+		strings.Join(lines, "\n"),
+		maybeCard.Priority,
+		maybeCard.CreatedAt,
+	}, nil
 }
 
 // readCards reads the cards it can find in the given directory
