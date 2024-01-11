@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"bufio"
 	"path/filepath"
 	"strings"
 	"bytes"
@@ -50,26 +49,15 @@ func readCard(path string) (card, error) {
 		return card{}, err
 	}
 	defer f.Close()
-	var lines []string
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() && scanner.Text() != "+++" {
-		lines = append(lines, scanner.Text())
+	document, footnote, err := SplitFootnote(f)
+	if err != nil {
+		return card{}, err
 	}
 
-	if len(lines) < 1 {
-		return card{}, fmt.Errorf("No card text found")
-	}
-
-	headline := lines[0]
-	headlinePrefix := "# "
-	if strings.HasPrefix(lines[0], headlinePrefix) {
-		headline = strings.TrimPrefix(lines[0], headlinePrefix)
-	}
-
-	var footnote string
-	for scanner.Scan() && scanner.Text() != "+++" {
-		footnote = footnote + "\n" + scanner.Text()
+	headline := GetHeadline(document)
+	if headline == "" {
+		return card{}, fmt.Errorf("Empty card headline")
 	}
 
 	var maybeCard struct {
@@ -90,7 +78,7 @@ func readCard(path string) (card, error) {
 	return card{
 		path,
 		headline,
-		strings.Join(lines, "\n"),
+		document,
 		maybeCard.Priority,
 		maybeCard.CreatedAt,
 	}, nil

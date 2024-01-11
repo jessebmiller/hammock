@@ -12,7 +12,7 @@ import (
 
 type project struct {
 	Path     string
-	Name     string `toml:"name"`
+	Name     string	   `toml:"name"`
 	Goal     string    `toml:"goal"`
 	Start    time.Time `toml:"start"`
 	Deadline time.Time `toml:"deadline"`
@@ -35,14 +35,22 @@ func (p project) Backlog() ([]card, error) {
 // project.NormalizePriorityRanks makes priority ranks of each card sequential
 // starting at 1 and incrementing by 1
 // Resolves conflicts by whim
-func (p project) NormalizePriorityRanks() error {
+func (p project) NormalizePriorities() error {
 	backlog, err := p.Backlog()
 	if err != nil {
 		return err
 	}
-	for i, card := range backlog {
+	err = WriteConsecutivePriorities(backlog)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WriteConsecutivePriorities(cards []card) error {
+	for i, card := range cards {
 		card.Priority = i+1
-		err = card.Write()
+		err := card.Write()
 		if err != nil {
 			return err 
 		}

@@ -19,7 +19,8 @@ Usage: hmm [COMMAND]
 Commands:
   list
   show [RANK]
-  move [FROM_RANK] [TO_RANK]
+  rank FROM TO
+  new
 `
 
 // TODO move helper functions in main.go to their own files
@@ -117,6 +118,77 @@ func show(args []string, ws workspace) error {
 		}
 	}
 
+	return nil
+}
+
+func PopI(s []card, i int) (card, []card) {
+	ret := make([]card, 0)
+	ret = append(ret, s[:i]...)
+	return s[i], append(ret, s[i+1:]...)
+}
+
+func InsertI(s []card, elem card, i int) []card {
+	ret := make([]card, 0)
+	ret = append(ret, s[:i]...)
+	ret = append(ret, elem)
+	return append(ret, s[i:]...)
+}
+
+func Swap(f int, t int, s []card) []card {
+	a, y := PopI(s, f)
+	return InsertI(y, a, t)
+}
+
+func rank(args []string, ws workspace) error {
+	usage := "Usage: hmm rank FROM TO"
+	if len(args) < 2 {
+		fmt.Println(usage)
+		return nil
+	}
+
+	from, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println(usage)
+		fmt.Println("FROM and TO must both be integers")
+		return nil
+	}
+	to, err := strconv.Atoi(args[1])
+	if err != nil {
+		fmt.Println(usage)
+		fmt.Println("FROM and TO must both be integers")
+		return nil
+	}
+	ps, err := ws.ActiveProjects()
+	if len(ps) != 1 {
+		fmt.Println("Rank only supports a single active project")
+		fmt.Println("There are", len(ps))
+		for _, p := range ps {
+			fmt.Println("  ", p.Name)
+		}
+		return nil
+	}
+
+	// translate from ranks to backlog array index
+	from = from - 1
+	to = to - 1
+
+	activeProjects := ps[0]
+	backlog, err := activeProjects.Backlog()
+	if err != nil {
+		return err
+	}
+
+	if from >= len(backlog) || from < 0 {
+		fmt.Println(usage)
+		fmt.Println("FROM must be 1 -", len(backlog))
+		return nil
+	}
+
+	backlog = Swap(from, to, backlog)
+	err = WriteConsecutivePriorities(backlog)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -230,7 +302,7 @@ func create(args []string, ws workspace) error {
 		path,
 		headline,
 		strings.Join(textLines, "\n"),
-		0, // Priority, Future work, take this in a flag default 0
+		-1, // Priority, Future work, take this in a flag default 0
 		time.Now(),
 	}
 	err = newCard.Write()
@@ -238,7 +310,7 @@ func create(args []string, ws workspace) error {
 		return err
 	}
 
-	err = priorityProject.NormalizePriorityRanks()
+	err = priorityProject.NormalizePriorities()
 	if err != nil {
 		return err
 	}
@@ -262,8 +334,9 @@ func main() {
 		err = list(os.Args[2:], ws)
 	case "show":
 		err = show(os.Args[2:], ws)
-	case "move":
-		err = move(os.Args[2:], ws)
+	case "rank":
+		err = rank(os.Args[2:], ws)
+		_ = list([]string{}, ws)
 	case "new":
 		err = create(os.Args[2:], ws)
 	default:

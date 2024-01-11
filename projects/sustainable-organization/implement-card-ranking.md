@@ -35,4 +35,4 @@ message"`)
 +++
 created_at = 2024-01-07T12:34:00-06:00
 hammock_type = "Card"
-priority = 6
+priority = 3

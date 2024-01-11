@@ -1,5 +1,0 @@
-name = "Test Complete Project"
-goal = "To test filtering out completed projects"
-start = 2024-01-01
-deadline = 2024-01-31
-complete = true

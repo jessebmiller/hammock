@@ -32,7 +32,7 @@ func (ws workspace) ActiveProjects() ([]project, error) {
 	var activeProjects []project
 	now := time.Now()
 	for _, p := range allProjects {
-		if p.Start.Before(now) && !p.Complete {
+		if p.Start.Before(now) && !p.Complete && !p.Start.IsZero() {
 			activeProjects = append(activeProjects, p)
 		}
 	}
