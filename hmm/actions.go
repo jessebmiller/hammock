@@ -241,7 +241,6 @@ func summarize() error {
 	defer w.Flush()
 
 	for _, line := range lines {
-		fmt.Println(strings.Join(line, "\\t"))
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
 
