@@ -1,22 +1,23 @@
 package main
 
 import (
-	"time"
+	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
-	"os"
-	"fmt"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 type project struct {
-	Path     string
-	Name     string	   `toml:"name"`
-	Goal     string    `toml:"goal"`
-	Start    time.Time `toml:"start"`
-	Deadline time.Time `toml:"deadline"`
-	Complete bool      `toml:"complete"`
+	Path      string
+	Workspace workspace
+	Name      string    `toml:"name"`
+	Goal      string    `toml:"goal"`
+	Start     time.Time `toml:"start"`
+	Deadline  time.Time `toml:"deadline"`
+	Complete  bool      `toml:"complete"`
 }
 
 // project.Backlog gets the backlog of the project
@@ -32,6 +33,18 @@ func (p project) Backlog() ([]card, error) {
 	return cards, nil
 }
 
+func (p project) CardHeadlines() ([]string, error) {
+	backlog, err := p.Backlog()
+	if err != nil {
+		return []string{}, err
+	}
+	var headlines []string
+	for _, c := range backlog {
+		headlines = append(headlines, c.Headline)
+	}
+	return headlines, nil
+}
+
 // project.NormalizePriorityRanks makes priority ranks of each card sequential
 // starting at 1 and incrementing by 1
 // Resolves conflicts by whim
@@ -44,6 +57,62 @@ func (p project) NormalizePriorities() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// DeadlineNotice text notice of the deadline
+func (p project) DeadlineNotice() string {
+	duration := p.Deadline.Sub(time.Now())
+	days := int(duration.Hours() / 24)
+	var deadline string
+	switch {
+	case p.Deadline.IsZero():
+		deadline = "No deadline"
+	case days == 0:
+		deadline = "Due today"
+	case days > 0:
+		deadline = fmt.Sprintf(
+			"Due in %v days",
+			days,
+		)
+	case days < 0:
+		deadline = fmt.Sprintf(
+			"Overdue by %v days",
+			days,
+		)
+	}
+	return deadline
+}
+
+// push elements into a slice
+func push[x any](elements []x, elem x) {
+	elements = append(elements, elem)
+}
+
+func (p project) BacklogHeadlines() ([]string, error) {
+	var headlines []string
+	backlog, err := p.Backlog()
+	if err != nil {
+		return []string{}, err
+	}
+	for _, card := range backlog {
+		push(headlines, card.Headline)
+	}
+	return headlines, nil
+}
+
+func (p project) PrintSummary() error {
+	fmt.Println()
+	fmt.Println(p.Name)
+	fmt.Println(p.DeadlineNotice())
+	headlines, err := p.BacklogHeadlines()
+	if err != nil {
+		return err
+	}
+	for i, h := range headlines {
+		fmt.Println(fmt.Sprintf("%v. %v", i, h))
+	}
+	fmt.Println()
 	return nil
 }
 
@@ -67,6 +136,11 @@ func readProject(path string) (project, error) {
 		return project{}, err
 	}
 	p.Path = path
+	ws, err := inWorkspace(path)
+	if err != nil {
+		return project{}, err
+	}
+	p.Workspace = ws
 	return p, nil
 }
 

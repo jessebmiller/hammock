@@ -67,7 +67,10 @@ func currentWorkspace() (workspace, error) {
 	if err != nil {
 		return workspace{}, err
 	}
+	return inWorkspace(dir)
+}
 
+func inWorkspace(dir string) (workspace, error) {
 	for dir != "/" {
 		maybeTOMLpath := filepath.Join(dir, "Workspace.toml")
 		_, err := os.Stat(maybeTOMLpath)

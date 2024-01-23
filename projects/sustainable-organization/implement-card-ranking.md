@@ -33,6 +33,5 @@ where you can input the content inline (like in `git commit -m "commit
 message"`)
 
 +++
-created_at = 2024-01-07T12:34:00-06:00
 hammock_type = "Card"
 priority = 3

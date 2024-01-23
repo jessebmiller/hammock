@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"bytes"
-	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -16,14 +15,12 @@ type card struct {
 	Headline	string
 	Text		string
         Priority	int		`toml:"priority"`
-	CreatedAt	time.Time	`toml:"created_at"`
 }
 
 func (c *card) Write() error {
 	buf := new(bytes.Buffer)
 	err := toml.NewEncoder(buf).Encode(map[string]any{
 		"priority": c.Priority,
-		"created_at": c.CreatedAt,
 		"hammock_type": "Card",
 	})
 	if err != nil {
@@ -63,7 +60,6 @@ func readCard(path string) (card, error) {
 	var maybeCard struct {
 		HammockType	string		`toml:"hammock_type"`
 		Priority	int		`toml:"priority"`
-		CreatedAt	time.Time	`toml:"created_at"`
 	}
 
 	_, err = toml.Decode(footnote, &maybeCard)
@@ -80,7 +76,6 @@ func readCard(path string) (card, error) {
 		headline,
 		document,
 		maybeCard.Priority,
-		maybeCard.CreatedAt,
 	}, nil
 }
 
