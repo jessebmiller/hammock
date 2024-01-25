@@ -20,73 +20,6 @@ type ProjectColumn struct {
 	CardHeadlines []string
 }
 
-/*
-func projectColumn(wsName string, p project) (ProjectColumn, error) {
-	col := ProjectColumn{
-		wsName,
-		p.Name,
-		p.Goal,
-		p.DeadlineNotice(),
-		[]string{},
-	}
-	backlog, err := p.Backlog()
-	if err != nil {
-		return []string{}, err
-	}
-	for i, c := range backlog {
-		col.CardHeadlines = append(
-			col.CardHeadlines,
-			fmt.Sprintf("%v. %s", i, c.Headline),
-		)
-	}
-	return col, nil
-}
-
-func maxHeight(m int, s string) int {
-	return max(m, len(strings.Split(s)))
-}
-
-// maxHeights returns the max number of lines for each property
-func maxHeights(cols []ProjectColumn) map[string]int {
-	var maxes map[string]int
-	for _, col := range cols {
-		maxes["WsName"] = maxHeight(maxes["WsName"], col.WsName)
-		maxes["Name"] = maxHeight(maxes["Name"], col.Name)
-		maxes["Goal"] = maxHeight(maxes["Goal"], col.Goal)
-		maxes["DeadlineNotice"] = maxHeight(
-			maxes["DeadlineNotice"],
-			col.DeadlineNotice,
-		)
-		maxes["CardHeadlines"] = max(
-			maxes["CardHeadlines"],
-			len(col.CardHeadlines),
-		)
-	}
-	return maxes
-}
-
-func pad(propName string, propVal string) string {
-	maxes = maxHeights(cols)
-	lines := strings.Split(propVal, "\n")
-	dif := maxes[propName] - len(lines)
-	return strings.Join(append(lines, make([]string, dif)...), "\n")
-}
-//padFields pads all fields with empty lines to match the max
-func padFields(cols []ProjectColumn) {
-	for _, col := range cols {
-		col.WsName = pad("WsName", col.WsName)
-		col.Name = pad("Name", col.Name)
-		col.Goal = pad("Goal", col.Goal)
-		col.DeadlineNotice = pad("DeadlineNotice", col.DeadlineNotice)
-		dif := maxes["CardHeadlines"] - len(col.CardHeadlines)
-		col.CardHeadlines = append(
-			col.CardHeadlines,
-			make([]string, dif)...,
-		)
-	}
-}
-*/
-
 func PPstr(i any) string {
 	s, _ := json.MarshalIndent(i, "", "  ")
 	return string(s)
@@ -110,13 +43,15 @@ func pushCol(rows [][]string, col []string) [][]string {
 	// append a cell from the column or a blank
 	// cell to the end of each row
 	var pushedRows [][]string
+	var pushedTo int
 	for i, row := range rows {
 		cell := " "
 		if i < len(col) {
 			cell = col[i]
 		}
-		row = append(row, cell)
-		pushedRows = append(pushedRows, row)
+		r := append(row, cell)
+		pushedRows = append(pushedRows, r)
+		pushedTo = i
 	}
 
 	// if there were more rows than the column needed
@@ -129,9 +64,9 @@ func pushCol(rows [][]string, col []string) [][]string {
 	// if so, add a row and fill it with blanks before
 	// the new column cells
 	padding := make([]string, len(pushedRows[0]) - 1)
-	for _, cell := range col[len(padding):] { 
-		row := append(padding, cell)
-		pushedRows = append(pushedRows, row)
+	for _, cell := range col[pushedTo+1:] { 
+		r := append(padding, cell)
+		pushedRows = append(pushedRows, r)
 	}
 
 	return pushedRows
@@ -159,18 +94,25 @@ func rowsToLines(rows [][]string) [][]string {
 }
 
 func splitAtWidth(line string, width int) string {
+	if len(line) <= width {
+		return line
+	}
 	scanner := bufio.NewScanner(strings.NewReader(line))
 	scanner.Split(bufio.ScanWords)
-	var l string
+	var l []string
+	var llen int
 	var ls []string
+	fmt.Println(line, width)
 	for scanner.Scan() {
-		l = l + " " + scanner.Text()
-		if len(l) - 1 + len(scanner.Text()) < width {
+		scanLen := len(scanner.Text()) + 1
+		if llen + scanLen <= width {
+			l = append(l, scanner.Text())
+			llen += scanLen
 			continue
 		}
-		ls = append(ls, strings.Trim(l, " "))
-		l = ""
-
+		ls = append(ls, strings.Join(l, " "))
+		l = []string{}
+		llen = 0
 	}
 	return strings.Join(ls, "\n")
 }
@@ -217,18 +159,24 @@ func summarize() error {
 		return err
 	}
 	
-	width := 32
+	width := 60
 	var rows [][]string
 	for _, p := range projects {
 		col := []string{
 			withMaxWidth(width)(p.Workspace.Name),
 			withMaxWidth(width)(p.Name),
+			" ",
 			withJustWidth(width)(p.Goal),
+			" ",
 			withMaxWidth(width)(p.DeadlineNotice()),
+			" ",
 		}
 		headlines, err := p.CardHeadlines()
 		if err != nil {
 			return err
+		}
+		for i, h := range headlines {
+			headlines[i] = fmt.Sprintf("%v. %v", i+1, h)
 		}
 		col = append(col, each(headlines, withMaxWidth(width))...)
 		rows = pushCol(rows, col)
@@ -237,9 +185,10 @@ func summarize() error {
 	lines := rowsToLines(rows)
 
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 0, 4, ' ', 0)
+	w.Init(os.Stdout, 0, 0, 8, ' ', 0)
 	defer w.Flush()
 
+	fmt.Println()
 	for _, line := range lines {
 		fmt.Fprintln(w, strings.Join(line, "\t"))
 	}
@@ -249,8 +198,6 @@ func summarize() error {
 
 // list the cards in active projects of a workspace
 func list(args []string, ws workspace) error {
-	fmt.Println()
-	fmt.Println("  ", ws.Name)
 	projects, err := ws.ActiveProjects()
 	if err != nil {
 		return err

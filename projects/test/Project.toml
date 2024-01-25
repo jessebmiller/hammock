@@ -1,6 +1,0 @@
-name = "Test project"
-goal = """ goal line 0
-goal line one
-"""
-
-start = 2024-01-01

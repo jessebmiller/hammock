@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -84,11 +85,6 @@ func (p project) DeadlineNotice() string {
 	return deadline
 }
 
-// push elements into a slice
-func push[x any](elements []x, elem x) {
-	elements = append(elements, elem)
-}
-
 func (p project) BacklogHeadlines() ([]string, error) {
 	var headlines []string
 	backlog, err := p.Backlog()
@@ -96,24 +92,40 @@ func (p project) BacklogHeadlines() ([]string, error) {
 		return []string{}, err
 	}
 	for _, card := range backlog {
-		push(headlines, card.Headline)
+		headlines = append(headlines, card.Headline)
 	}
 	return headlines, nil
 }
 
 func (p project) PrintSummary() error {
-	fmt.Println()
-	fmt.Println(p.Name)
-	fmt.Println(p.DeadlineNotice())
-	headlines, err := p.BacklogHeadlines()
+	summary, err := p.Summary()
 	if err != nil {
 		return err
 	}
-	for i, h := range headlines {
-		fmt.Println(fmt.Sprintf("%v. %v", i, h))
-	}
-	fmt.Println()
+	fmt.Println(summary)
 	return nil
+}
+
+func (p project) Summary() (string, error) {
+	s := []string{
+		"",
+		p.Workspace.Name,
+		"",
+		p.Name,
+		"",
+		strings.TrimSpace(p.Goal),
+		"",
+		p.DeadlineNotice(),
+		"",
+	}
+	headlines, err := p.BacklogHeadlines()
+	if err != nil {
+		return "", err
+	}
+	for i, h := range headlines {
+		s = append(s, fmt.Sprintf("%v. %v", i+1, h))
+	}
+	return strings.Join(s, "\n"), nil
 }
 
 func WriteConsecutivePriorities(cards []card) error {
