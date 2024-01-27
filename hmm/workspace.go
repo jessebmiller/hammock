@@ -48,7 +48,7 @@ func (ws workspace) ActiveProjects() ([]project, error) {
 	}
 	var activeProjects []project
 	for _, p := range allProjects {
-		if hasPassed(p.Start) && !hasPassed(p.Complete) {
+		if hasPassed(p.Start) && !hasPassed(p.Completed) {
 			activeProjects = append(activeProjects, p)
 		}
 	}

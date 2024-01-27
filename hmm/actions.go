@@ -102,8 +102,19 @@ func list(args []string, ws workspace) error {
 		return err
 	}
 
+	if len(projects) == 0 {
+		fmt.Println(ws.Name)
+		fmt.Println("No active projects")
+		return nil
+	}
+
 	for _, project := range projects {
-		project.PrintSummary()
+		err := project.PrintSummary()
+		if err != nil {
+			fmt.Print(project.Name, " ")
+			fmt.Println("Error printing summary")
+			fmt.Println(err)
+		}
 	}
 
 	return nil
@@ -111,9 +122,8 @@ func list(args []string, ws workspace) error {
 
 func initWorkspace(args []string) error {
 	var name string
-	var err error
 	if len(args) == 0 {
-		name, err = prompt("Workspace Name:")
+		name = prompt("Workspace Name:")
 	} else {
 		name = strings.Join(args, " ")
 	}
@@ -264,7 +274,52 @@ func rank(args []string, ws workspace) error {
 	return nil
 }
 
+func dirNameFromName(name string) string {
+	reg, err := regexp.Compile("[^A-Za-z0-9_]+")
+	if err != nil {
+		panic(err)
+	}
+	return strings.Trim(reg.ReplaceAllString(name, "-"), "-")
+}
+
+func createProjectAction(ws workspace) error {
+	name := prompt("Name:")
+	if name == "" {
+		return fmt.Errorf("Name required")
+	}
+	goal := prompt("Goal:")
+	timeFmt := "2006-01-02"
+	now := time.Now()
+	defaultStart := now.Format(timeFmt)
+	start := prompt(fmt.Sprintf("Start(%s):", defaultStart))
+	var opts []ProjectOpt
+	if start == "" {
+		opts = append(opts, withStart(now))
+	} else {
+		t, err := time.Parse(timeFmt, start)
+		if err != nil {
+			return fmt.Errorf("Format error, want YYYY-MM-DD")
+		}
+		opts = append(opts, withStart(t))
+	}
+	deadline := prompt("Deadline(None):")
+	if deadline != "" {
+		t, err := time.Parse(timeFmt, deadline)
+		if err != nil {
+			return fmt.Errorf("Format error, want YYYY-MM-DD")
+		}
+		opts = append(opts, withDeadline(t))
+	}
+	dirName := dirNameFromName(name)
+	path := filepath.Join(ws.Path, ws.ProjectsDir, dirName)
+	_, err := CreateProject(path, ws, name, goal, opts)
+	return err
+}
+
 func create(args []string, ws workspace) error {
+	if len(args) > 0 && args[0] == "project" {
+		return createProjectAction(ws)
+	}
 	presetText := "# "
 	cardText, err := textFromEditor(presetText)
 	if err != nil {
@@ -275,20 +330,9 @@ func create(args []string, ws workspace) error {
 		return nil
 	}
 
-	// extract headline for filename
 	scanner := bufio.NewScanner(strings.NewReader(cardText))
-	scanner.Scan()
 
-	headline := strings.Trim(
-		strings.TrimSpace(scanner.Text()),
-		"# ",
-	)
-	if headline == "" {
-		fmt.Println("Aborting new card due to missing headline on first line")
-		return nil
-	}
-
-	textLines := []string{scanner.Text()}
+	textLines := []string{}
 	for scanner.Scan() {
 		textLines = append(textLines, scanner.Text())
 	}
@@ -308,38 +352,18 @@ func create(args []string, ws workspace) error {
 		for i, project := range projects {
 			fmt.Println(i+1, ")", project.Name)
 		}
+		return nil
 	}
 
 	priorityProject := projects[0]
-
 	path := priorityProject.Path
 
-	// create file and write text into it
-	reg, err := regexp.Compile("[^A-Za-z0-9_]+")
-	if err != nil {
-		return err
-	}
-	fileRoot := strings.Trim(reg.ReplaceAllString(headline, "-"), "-")
-	fileName := fmt.Sprintf("%s.md", fileRoot)
-	path = filepath.Join(path, fileName)
-	newCard := card{
-		path,
-		headline,
-		strings.Join(textLines, "\n"),
-		-1, // Priority, Future work, take this in a flag default 0
-		time.Time{},
-	}
-	err = newCard.Write()
+	_, err = CreateCard(path, cardText, []CardOpt{})
 	if err != nil {
 		return err
 	}
 
-	err = priorityProject.NormalizePriorities()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return priorityProject.NormalizePriorities()
 }
 
 func remove(args []string, ws workspace) error {

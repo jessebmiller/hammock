@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,6 +21,62 @@ type card struct {
 	Completed time.Time	`toml:"completed"`
 }
 
+type CardOpt func(*card)
+
+func WithPriority(n int) CardOpt {
+	return func(c *card) {
+		c.Priority = n
+	}
+}
+
+func WithCompleted(t time.Time) CardOpt {
+	return func(c *card) {
+		c.Completed = t
+	}
+}
+
+func getHeadline(s string) string {	
+	scanner := bufio.NewScanner(strings.NewReader(s))
+	scanner.Scan()
+
+	headline := strings.Trim(
+		strings.TrimSpace(scanner.Text()),
+		"# ",
+	)
+	return headline
+}
+
+func fileNameFromHeadline(h string) string {
+	reg, err := regexp.Compile("[^A-Za-z0-9_]+")
+	if err != nil {
+		panic(err)
+	}
+	fileRoot := strings.Trim(reg.ReplaceAllString(h, "-"), "-")
+	return fmt.Sprintf("%s.md", fileRoot)
+}
+
+func CreateCard(
+	projectPath string,
+	text string,
+	opts []CardOpt,
+) (card, error) {
+	headline := getHeadline(text)
+	if headline == "" {
+		e := "Aborting new card, missing headline"
+		return card{}, fmt.Errorf(e)
+	}
+	fileName := fileNameFromHeadline(headline)
+	path := filepath.Join(projectPath, fileName)
+	c := card{
+		path,
+		headline,
+		text,
+		0,
+		time.Time{},
+	}
+	return c, c.Write()
+}
+
 func (c *card) Write() error {
 	buf := new(bytes.Buffer)
 	err := toml.NewEncoder(buf).Encode(map[string]any{
@@ -26,7 +84,7 @@ func (c *card) Write() error {
 		"completed":    c.Completed,
 		"hammock_type": "Card",
 	})
-	if err != nil {
+		if err != nil {
 		return err
 	}
 	content := strings.Join([]string{

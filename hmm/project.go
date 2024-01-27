@@ -13,14 +13,67 @@ import (
 )
 
 type project struct {
-	Path      string
-	Workspace workspace
+	Path      string    `toml:"-"`
+	Workspace workspace `toml:"-"`
 	Name      string    `toml:"name"`
 	Goal      string    `toml:"goal"`
 	Start     time.Time `toml:"start"`
 	Deadline  time.Time `toml:"deadline"`
-	Complete  time.Time `toml:"complete"`
+	Completed  time.Time `toml:"complete"`
 	ShowDoneFor string `toml:"show_done_for"`
+}
+
+type ProjectOpt func(*project)
+
+func withStart(t time.Time) ProjectOpt {
+	return func(p *project) {
+		p.Start = t
+	}
+}
+
+func withDeadline(t time.Time) ProjectOpt {
+	return func(p *project) {
+		p.Deadline = t
+	}
+}
+
+func withCompleted(t time.Time) ProjectOpt {
+	return func(p *project) {
+		p.Completed = t
+	}
+}
+
+func withShowDoneFor(d string) ProjectOpt {
+	return func(p *project) {
+		p.ShowDoneFor = d
+	}	
+}
+
+func CreateProject(
+	path string,
+	ws workspace,
+	name string,
+	goal string,
+	opts []ProjectOpt,
+) (project, error) {
+	p := project{
+		path,
+		ws,
+		name,
+		goal,
+		time.Time{},
+		time.Time{},
+		time.Time{},
+		"36h",
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+	err := p.Write()
+	if err != nil {
+		return project{}, err
+	}
+	return p, nil
 }
 
 func (p project) Write() error {
@@ -29,7 +82,12 @@ func (p project) Write() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p.Path, []byte(buf.String()), 0644)
+	err = os.MkdirAll(p.Path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	configPath := filepath.Join(p.Path, "Project.toml")
+	return os.WriteFile(configPath, []byte(buf.String()), 0644)
 }
 
 // project.Backlog gets the backlog of the project
@@ -111,7 +169,7 @@ func (p project) BacklogHeadlines() ([]string, error) {
 	}
 	for _, card := range backlog {
 		d, err := time.ParseDuration(p.ShowDoneFor)
-		if err != nil {
+		if err != nil && p.ShowDoneFor != "" {
 			return []string{}, err
 		}
 		if longerAgoThan(card.Completed, d) {

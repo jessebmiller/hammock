@@ -28,14 +28,14 @@ func PPrint(i interface{}) {
 	fmt.Println(PPstr(i))
 }
 
-func prompt(p string) (string, error) {
+func prompt(p string) string {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print(p + " ")
 	text, err := reader.ReadString('\n')
 	if err != nil {
-		return "", err
+		panic(err)
 	}
-	return strings.TrimSpace(text), nil
+	return strings.TrimSpace(text)
 }
 
 // SplitFootnote splits text into a document and a footnote

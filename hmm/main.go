@@ -16,7 +16,7 @@ Commands:
   show [RANK]
   rank FROM TO
   done RANK
-  new
+  new [project]
   remove RANK "QUOTED CARD HEADLINE"
   init
 `
