@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +19,17 @@ type project struct {
 	Goal      string    `toml:"goal"`
 	Start     time.Time `toml:"start"`
 	Deadline  time.Time `toml:"deadline"`
-	Complete  bool      `toml:"complete"`
+	Complete  time.Time `toml:"complete"`
+	ShowDoneFor string `toml:"show_done_for"`
+}
+
+func (p project) Write() error {
+	buf := new(bytes.Buffer)
+	err := toml.NewEncoder(buf).Encode(p)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p.Path, []byte(buf.String()), 0644)
 }
 
 // project.Backlog gets the backlog of the project
@@ -85,6 +96,13 @@ func (p project) DeadlineNotice() string {
 	return deadline
 }
 
+func longerAgoThan(t time.Time, d time.Duration) bool {
+	if t.IsZero() {
+		return false
+	}
+	return time.Now().Sub(t) > d
+}
+
 func (p project) BacklogHeadlines() ([]string, error) {
 	var headlines []string
 	backlog, err := p.Backlog()
@@ -92,6 +110,13 @@ func (p project) BacklogHeadlines() ([]string, error) {
 		return []string{}, err
 	}
 	for _, card := range backlog {
+		d, err := time.ParseDuration(p.ShowDoneFor)
+		if err != nil {
+			return []string{}, err
+		}
+		if longerAgoThan(card.Completed, d) {
+			continue
+		}
 		headlines = append(headlines, card.Headline)
 	}
 	return headlines, nil
@@ -130,10 +155,10 @@ func (p project) Summary() (string, error) {
 
 func WriteConsecutivePriorities(cards []card) error {
 	for i, card := range cards {
-		card.Priority = i+1
+		card.Priority = i + 1
 		err := card.Write()
 		if err != nil {
-			return err 
+			return err
 		}
 	}
 	return nil
@@ -141,19 +166,23 @@ func WriteConsecutivePriorities(cards []card) error {
 
 // readProject reads a project from a path
 // path must be a directory with a valid Project.toml file in it
-func readProject(path string) (project, error) {
+func readProject(path string) (project, bool, error) {
+	tomlPath := filepath.Join(path, "Project.toml")
+	if _, err := os.Stat(tomlPath); err != nil {
+		return project{}, false, nil
+	}
 	var p project
-	_, err := toml.DecodeFile(filepath.Join(path, "Project.toml"), &p)
+	_, err := toml.DecodeFile(tomlPath, &p)
 	if err != nil {
-		return project{}, err
+		return project{}, false, err
 	}
 	p.Path = path
 	ws, err := inWorkspace(path)
 	if err != nil {
-		return project{}, err
+		return project{}, false, err
 	}
 	p.Workspace = ws
-	return p, nil
+	return p, true, nil
 }
 
 // readProjects reads the projects it can find in the given directory
@@ -186,8 +215,11 @@ func readProjects(path string) ([]project, error) {
 
 	var projects []project
 	for _, projectPath := range projectPaths {
-		p, err := readProject(projectPath)
-		if err == nil {
+		p, isProject, err := readProject(projectPath)
+		if err != nil {
+			return []project{}, err
+		}
+		if isProject {
 			projects = append(projects, p)
 		}
 	}

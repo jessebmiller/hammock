@@ -33,5 +33,6 @@ where you can input the content inline (like in `git commit -m "commit
 message"`)
 
 +++
+done = true
 hammock_type = "Card"
 priority = 3

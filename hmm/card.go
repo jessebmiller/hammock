@@ -1,26 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"bytes"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 type card struct {
-	Path		string
-	Headline	string
-	Text		string
-        Priority	int		`toml:"priority"`
+	Path      string
+	Headline  string
+	Text      string
+	Priority  int		`toml:"priority"`
+	Completed time.Time	`toml:"completed"`
 }
 
 func (c *card) Write() error {
 	buf := new(bytes.Buffer)
 	err := toml.NewEncoder(buf).Encode(map[string]any{
-		"priority": c.Priority,
+		"priority":     c.Priority,
+		"completed":    c.Completed,
 		"hammock_type": "Card",
 	})
 	if err != nil {
@@ -31,12 +34,29 @@ func (c *card) Write() error {
 		"+++",
 		buf.String(),
 	}, "\n")
-	err = os.WriteFile(c.Path, []byte(content), 0644)
-	if err != nil {
-		return err
+
+	return os.WriteFile(c.Path, []byte(content), 0644)
+}
+
+func (c card) IsComplete() bool {
+	return !c.Completed.IsZero()
+}
+
+func (c *card) MarkComplete() error {
+	c.Completed = time.Now()
+	return c.Write()
+}
+
+func (c *card) MarkNotComplete() error {
+	c.Completed = time.Time{}
+	return c.Write()
+}
+
+func (c *card) ToggleComplete() error {
+	if c.Completed.IsZero() {
+		return c.MarkComplete()
 	}
-	
-	return nil
+	return c.MarkNotComplete()
 }
 
 // readCard tries to read a path into a card struct
@@ -58,8 +78,9 @@ func readCard(path string) (card, error) {
 	}
 
 	var maybeCard struct {
-		HammockType	string		`toml:"hammock_type"`
-		Priority	int		`toml:"priority"`
+		HammockType string	`toml:"hammock_type"`
+		Priority    int		`toml:"priority"`
+		Completed   time.Time   `toml:"completed"`
 	}
 
 	_, err = toml.Decode(footnote, &maybeCard)
@@ -71,11 +92,18 @@ func readCard(path string) (card, error) {
 		return card{}, fmt.Errorf("Not a card (%s)", path)
 	}
 
+	if !maybeCard.Completed.IsZero() {
+		headline = fmt.Sprintf("✔ %s", headline)
+	} else {
+		headline = fmt.Sprintf("• %s", headline)
+	}
+
 	return card{
 		path,
 		headline,
 		document,
 		maybeCard.Priority,
+		maybeCard.Completed,
 	}, nil
 }
 

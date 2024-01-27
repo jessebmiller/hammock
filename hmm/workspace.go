@@ -1,12 +1,13 @@
 package main
 
 import (
-	"path/filepath"
-	"time"
-	"os"
+	"bytes"
 	"errors"
 	"fmt"
-	
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/BurntSushi/toml"
 )
 
@@ -16,9 +17,26 @@ type workspace struct {
 	ProjectsDir string `toml:"projects_dir"`
 }
 
+// workspace.Write writes the workspace to the file
+func (ws workspace) Write() error {
+	buf := new(bytes.Buffer)
+	err := toml.NewEncoder(buf).Encode(ws)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(ws.Path, []byte(buf.String()), 0644)
+}
+
 // workspace.Projects gets all the projects in the workspace
 func (ws workspace) Projects() ([]project, error) {
 	return readProjects(filepath.Join(ws.Path, ws.ProjectsDir))
+}
+
+func hasPassed(t time.Time) bool {
+	if t.IsZero() {
+		return false
+	}
+	return t.Before(time.Now())
 }
 
 // workspace.ActiveProjects gets all the active projects in the workspace
@@ -28,18 +46,16 @@ func (ws workspace) ActiveProjects() ([]project, error) {
 	if err != nil {
 		return []project{}, err
 	}
-
 	var activeProjects []project
-	now := time.Now()
 	for _, p := range allProjects {
-		if p.Start.Before(now) && !p.Complete && !p.Start.IsZero() {
+		if hasPassed(p.Start) && !hasPassed(p.Complete) {
 			activeProjects = append(activeProjects, p)
 		}
 	}
 
 	return activeProjects, nil
 }
- 
+
 // readWorkspace reads a workspace from a path
 // path must be a directory with a Workspace.toml file in it
 func readWorkspace(path string) (workspace, error) {

@@ -15,12 +15,14 @@ Commands:
   list
   show [RANK]
   rank FROM TO
+  done RANK
   new
   remove RANK "QUOTED CARD HEADLINE"
+  init
 `
 
 type Hammock struct {
-	Path string
+	Path                   string
 	PriorityWorkspaceNames []string `toml:"priority_workspaces"`
 }
 
@@ -41,14 +43,14 @@ func (hmm Hammock) PriorityProjects() ([]project, error) {
 		projects = append(projects, activeProjects...)
 	}
 	return projects, nil
-} 
+}
 
 func readHammock() (Hammock, error) {
 	hammock_path := filepath.Join(os.Getenv("HAMMOCK_PATH"), "Hammock.toml")
 	var hmm Hammock
 	_, err := toml.DecodeFile(hammock_path, &hmm)
 	if err != nil {
-		e :=  fmt.Errorf(
+		e := fmt.Errorf(
 			"Error decoding HAMMOCK_PATH=\"%v\": %v",
 			hammock_path,
 			err,
@@ -59,32 +61,70 @@ func readHammock() (Hammock, error) {
 	return hmm, nil
 }
 
+func (hmm Hammock) Workspaces() ([]workspace, error) {
+	hmmRoot := filepath.Dir(hmm.Path)
+	files, err := os.ReadDir(hmmRoot)
+	if err != nil {
+		return []workspace{}, err
+	}
+	var workspaces []workspace
+	for _, f := range files {
+		ws, err := readWorkspace(filepath.Join(hmmRoot, f.Name()))
+		if err != nil {
+			continue
+		}
+		workspaces = append(workspaces, ws)
+	}
+	return workspaces, nil
+}
+
 func main() {
 	if len(os.Args) == 1 {
 		check(summarize())
 		return
 	}
 
-	ws, err := currentWorkspace()
-	if err != nil {
-		panic(err)
+	action := os.Args[1]
+
+	// actions that don't need a current workspace
+	switch action {
+	case "go":
+		check(cdToWorkspace(os.Args[2:]))
+		return
+	case "init":
+		check(initWorkspace(os.Args[2:]))
+		return
 	}
 
-	action := os.Args[1]
+	var actionFunc func([]string, workspace) error
+	var showList bool
 	switch action {
 	case "list":
-		check(list(os.Args[2:], ws))
+		actionFunc = list
 	case "show":
-		check(show(os.Args[2:], ws))
+		actionFunc = show
 	case "rank":
-		check(rank(os.Args[2:], ws))
-		check(list([]string{}, ws))
+		actionFunc = rank
+		showList = true
 	case "new":
-		check(create(os.Args[2:], ws))
+		actionFunc = create
+		showList = true
 	case "remove":
-		check(remove(os.Args[2:], ws))
+		actionFunc = remove
+		showList = true
+	case "done":
+		actionFunc = done
+		showList = true
 	default:
 		fmt.Println("Unknown action", action)
 		fmt.Print(usage)
+		return
+	}
+
+	ws, err := currentWorkspace()
+	check(err)
+	check(actionFunc(os.Args[2:], ws))
+	if showList {
+		check(list([]string{}, ws))
 	}
 }

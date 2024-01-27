@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,143 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
-
-type ProjectColumn struct {
-	WsName string
-	Name string
-	Goal string
-	DeadlineNotice string
-	CardHeadlines []string
-}
-
-func PPstr(i any) string {
-	s, _ := json.MarshalIndent(i, "", "  ")
-	return string(s)
-}
-
-func PPrint(i interface{}) {
-      fmt.Println(PPstr(i))
-}
-
-// pushCol pushes a column into a 2d string array
-// adding blank rows as needed. This function expects
-// the rows to all be the same length
-func pushCol(rows [][]string, col []string) [][]string {
-	if len(rows) == 0 {
-		for _, cell := range col {
-			rows = append(rows, []string{cell})
-		}
-		return rows
-	}
-
-	// append a cell from the column or a blank
-	// cell to the end of each row
-	var pushedRows [][]string
-	var pushedTo int
-	for i, row := range rows {
-		cell := " "
-		if i < len(col) {
-			cell = col[i]
-		}
-		r := append(row, cell)
-		pushedRows = append(pushedRows, r)
-		pushedTo = i
-	}
-
-	// if there were more rows than the column needed
-	// we're done
-	if len(rows) >= len(col) {
-		return pushedRows
-	}
-
-	// there may be extra cells in the column
-	// if so, add a row and fill it with blanks before
-	// the new column cells
-	padding := make([]string, len(pushedRows[0]) - 1)
-	for _, cell := range col[pushedTo+1:] { 
-		r := append(padding, cell)
-		pushedRows = append(pushedRows, r)
-	}
-
-	return pushedRows
-}
-
-// rowToLines splits a row into lines and pads cells to match the max
-func rowToLines(row []string) [][]string {
-	var lines [][]string
-	for _, cell := range row {
-		cell = strings.TrimSpace(cell)
-		cellLines := strings.Split(cell, "\n")
-		lines = pushCol(lines, cellLines)
-	}
-	return lines
-}
-
-// rowsToLines adds blank lines for rows with multiline cells
-// pushing down later rows as needed
-func rowsToLines(rows [][]string) [][]string {
-	var lines [][]string
-	for _, row := range rows {
-		lines = append(lines, rowToLines(row)...)
-	}
-	return lines
-}
-
-func splitAtWidth(line string, width int) string {
-	if len(line) <= width {
-		return line
-	}
-	scanner := bufio.NewScanner(strings.NewReader(line))
-	scanner.Split(bufio.ScanWords)
-	var l []string
-	var llen int
-	var ls []string
-	fmt.Println(line, width)
-	for scanner.Scan() {
-		scanLen := len(scanner.Text()) + 1
-		if llen + scanLen <= width {
-			l = append(l, scanner.Text())
-			llen += scanLen
-			continue
-		}
-		ls = append(ls, strings.Join(l, " "))
-		l = []string{}
-		llen = 0
-	}
-	return strings.Join(ls, "\n")
-}
-
-func withJustWidth(width int) func(string)string {
-	return func(text string) string {
-		if len(text) <= width {
-			return text
-		}
-		var lines []string
-		for _, line := range strings.Split(text, "\n") {
-			lines = append(lines, splitAtWidth(line, width))
-		}
-		return strings.Join(lines, "\n")
-
-	}
-}
-
-func withMaxWidth(width int) func(string)string {
-	return func(text string) string {
-		if len(text) <= width {
-			return text
-		}
-		return text[:width-3] + "..."
-	}
-}
-
-func each[X any, Y any](xs []X, f func(x X) Y) []Y {
-	ys := make([]Y, len(xs))
-	for i, x := range xs {
-		ys[i] = f(x)
-	}
-	return ys
-}
 
 func summarize() error {
 	hmm, err := readHammock()
@@ -158,7 +22,7 @@ func summarize() error {
 	if err != nil {
 		return err
 	}
-	
+
 	width := 60
 	var rows [][]string
 	for _, p := range projects {
@@ -196,6 +60,41 @@ func summarize() error {
 	return nil
 }
 
+// done marks a card done by rank
+func done(args []string, ws workspace) error {
+	var rank int
+	if len(args) > 0 {
+		input, err := strconv.Atoi(args[0])
+		if err != nil {
+			return err
+		}
+		rank = input - 1
+	}
+
+	activeProjects, err := ws.ActiveProjects()
+	if err != nil {
+		return err
+	}
+
+	if len(activeProjects) == 0 {
+		fmt.Println("No active projects")
+		return nil
+	}
+
+	if len(activeProjects) > 1 {
+		fmt.Println("Multiple active projects! only showing card from one of them")
+		fmt.Println("Hangling this is future work")
+		return nil
+	}
+
+	backlog, err := activeProjects[0].Backlog()
+
+	rank = min(len(backlog)-1, rank)
+	rank = max(0, rank)
+
+	return backlog[rank].ToggleComplete()
+}
+
 // list the cards in active projects of a workspace
 func list(args []string, ws workspace) error {
 	projects, err := ws.ActiveProjects()
@@ -210,6 +109,61 @@ func list(args []string, ws workspace) error {
 	return nil
 }
 
+func initWorkspace(args []string) error {
+	var name string
+	var err error
+	if len(args) == 0 {
+		name, err = prompt("Workspace Name:")
+	} else {
+		name = strings.Join(args, " ")
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(wd, "Workspace.toml")
+	ws := workspace{
+		name,
+		path,
+		"projects",
+	}
+	return ws.Write()
+}
+
+func cdToWorkspace(args []string) error {
+	hmm, err := readHammock()
+	if err != nil {
+		return err
+	}
+	workspaces, err := hmm.Workspaces()
+	if err != nil {
+		return err
+	}
+	if len(args) < 1 {
+		// TODO don't print the message, print an echo statement this is
+		// evaluated by a shell script to change directories
+		fmt.Println("usage: hmm go <workspaceName>")
+		fmt.Println("Workspaces:")
+		for _, ws := range workspaces {
+			fmt.Println(ws.Name)
+		}
+		return fmt.Errorf("Missing argument")
+	}
+
+	for _, ws := range workspaces {
+		if ws.Name == args[0] {
+			fmt.Println("cd", ws.Path)
+			return nil
+		}
+	}
+	fmt.Println("Workspace", args[0], "not found.")
+	fmt.Println("Workspaces:")
+	for _, ws := range workspaces {
+		fmt.Println(ws.Name)
+	}
+	return fmt.Errorf("workspace not found")
+}
+
 // show a card or few
 // By default, show the card with the highest priority rank
 // Optional arg specifying the rank of the card to show
@@ -221,32 +175,29 @@ func show(args []string, ws workspace) error {
 			return err
 		}
 		rank = input - 1
-		fmt.Println(rank)
 	}
-	fmt.Println(rank)
-	
+
 	activeProjects, err := ws.ActiveProjects()
 	if err != nil {
 		return err
 	}
-	
+
 	if len(activeProjects) == 0 {
 		fmt.Println("No active projects, no card to show")
+		return nil
 	}
 
 	if len(activeProjects) > 1 {
 		fmt.Println("Multiple active projects! only showing card from one of them")
 		fmt.Println("Hangling this is future work")
+		return nil
 	}
 
 	project := activeProjects[0]
 	backlog, err := project.Backlog()
 
-	fmt.Println(rank)
-	rank = min(len(backlog) - 1, rank)
-	fmt.Println(rank)
+	rank = min(len(backlog)-1, rank)
 	rank = max(0, rank)
-	fmt.Println(rank)
 
 	fmt.Println(project.Name)
 	for i, card := range backlog {
@@ -376,6 +327,7 @@ func create(args []string, ws workspace) error {
 		headline,
 		strings.Join(textLines, "\n"),
 		-1, // Priority, Future work, take this in a flag default 0
+		time.Time{},
 	}
 	err = newCard.Write()
 	if err != nil {
@@ -422,7 +374,7 @@ func remove(args []string, ws workspace) error {
 		return err
 	}
 
-	if (rank < 0 || rank >= len(backlog)) {
+	if rank < 0 || rank >= len(backlog) {
 		fmt.Println("No card at rank", rank)
 	}
 
@@ -433,9 +385,9 @@ func remove(args []string, ws workspace) error {
 		fmt.Println("removed", card.Headline)
 	} else {
 		fmt.Println("The headline you entered did not match the headline of the card")
-		fmt.Println("Card rank", rank + 1, "has headline:", card.Headline)
+		fmt.Println("Card rank", rank+1, "has headline:", card.Headline)
 		fmt.Println("You entered:             ", args[1])
 	}
-	
+
 	return nil
 }
